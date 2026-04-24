@@ -1,6 +1,6 @@
 <!-- Copyright 2026 Phillip Cloud -->
 <!-- Licensed under the Apache License, Version 2.0 -->
-<!-- verified: 2026-04-16 -->
+<!-- verified: 2026-04-24 -->
 
 # Code Patterns & Conventions
 
@@ -35,6 +35,20 @@ Store (SQLite) -> TabHandler.Load() -> rows/cells/meta
   -> Full* (pre-filter) -> applyRowFilter (pins) -> applySorts -> CellRows (displayed)
     -> renderTableRows (with styles, links, drilldowns)
 ```
+
+### Browser UI
+- `micasa web` is an additive interface; plain `micasa` still launches the TUI.
+- Shared startup lives in `cmd/micasa/runtime.go` so TUI and web both reuse DB
+  open/migrate/default/config/currency bootstrap.
+- `internal/web` stays thin: handlers call `internal/data` directly and serve a
+  compiled React frontend embedded with `go:embed`.
+- React source lives in `web/`; Vite builds static assets into
+  `internal/web/dist/`.
+- The Go server serves `/api/*` normally and falls back to `index.html` for
+  client routes like `/projects` so React Router owns browser navigation.
+- Soft-delete recovery is exposed through a dedicated browser `Trash` page backed
+  by `internal/data/store_trash.go` and `/api/trash` endpoints, instead of
+  scattering `include_deleted` toggles across every list view.
 
 ### Message Dispatch
 ```
@@ -93,6 +107,10 @@ User edits (keyboard, calendar picker)
 - testmain_test.go: pre-migrated template DB (fast per-test cloning)
 - newTestModelWithStore(t): Model with real SQLite, sized 120x40
 - newTestModelWithDemoData(t, seed): Model with faker-seeded data
+- Browser UI tests use `httptest` against `internal/web.NewServer` with a real
+  SQLite-backed `data.Store` seeded via `SeedDemoData()`
+- SPA routing behavior is tested through HTTP requests (`/`, `/projects`) so
+  the embedded asset serving path is covered end-to-end
 
 ### Test Helpers
 - sendKey(m, key) - sends KeyMsg

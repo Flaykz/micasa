@@ -1,6 +1,6 @@
 <!-- Copyright 2026 Phillip Cloud -->
 <!-- Licensed under the Apache License, Version 2.0 -->
-<!-- verified: 2026-04-02 -->
+<!-- verified: 2026-04-24 -->
 
 # Project Structure
 
@@ -9,7 +9,9 @@
 ## Directory Layout
 
 ```
-cmd/micasa/main.go          CLI entry (cobra). runOpts, backupOpts, newRootCmd
+cmd/micasa/main.go          CLI entry (cobra). runOpts, backupOpts, web subcommand wiring
+cmd/micasa/runtime.go       Shared store/config bootstrap for TUI + web
+cmd/micasa/web.go           Browser UI subcommand, HTTP server lifecycle
 internal/
   app/                      TUI package (~30K lines, largest package)
     model.go                Model struct, Init/Update/View, key dispatch
@@ -45,6 +47,7 @@ internal/
     model_with_demo_data_test.go    newTestModelWithDemoData(t, seed)
   data/                     Persistence layer
     store.go                Store struct (gorm.DB), all CRUD, soft-delete, seeding
+    store_trash.go          Trash listing + generic restore helpers for web UI
     models.go               GORM entity structs (14 models)
     query.go                Schema inspection, ReadOnlyQuery, DataDump for LLM
     backup.go               SQLite Online Backup API
@@ -72,6 +75,9 @@ internal/
     bytesize.go             ByteSize custom type ("50 MiB")
     duration.go             Duration custom type ("30d")
     show.go                 Config display/dump
+  web/                      Browser UI surface
+    server.go               Web JSON API + SPA asset serving with React route fallback
+    dist/                   Compiled React frontend assets served via go:embed
   extract/                  Document extraction pipeline
     extractor.go            Extractor interface
     pipeline.go             Pipeline orchestration (text -> OCR -> LLM)
@@ -108,7 +114,8 @@ internal/
 - `nix/module.nix` - NixOS module
 - `.github/workflows/ci.yml` - Multi-OS matrix (Ubuntu x86/ARM, macOS, Windows)
 - `.golangci.yml` - Linter config (exhaustive, wrapcheck, goconst min 5, etc.)
-- `go.mod` - Go 1.25.5, key deps: bubbletea/lipgloss/huh, gorm+modernc sqlite, any-llm-go
+- `go.mod` - Go 1.26, key deps: bubbletea/lipgloss/huh, gorm+modernc sqlite, any-llm-go
+- `web/` - React + TypeScript + Vite frontend source; builds to `internal/web/dist`
 - `docs/` - Hugo site (guides, reference, blog)
 - `plans/` - Design documents (committed to repo)
 

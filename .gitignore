@@ -48,6 +48,7 @@ result-*
 
 # Editor
 .cursor/
+web/node_modules/
 
 # Hugo output
 docs/public/
@@ -81,3 +82,4 @@ dev.md
 # Superpowers brainstorm artifacts
 .superpowers/
 .github/hooks
+/.idea

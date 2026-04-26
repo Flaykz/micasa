@@ -167,7 +167,8 @@ details; do not duplicate that detail here.
 - `/bump-deps` -- bump all project dependencies (Go modules + Nix flake inputs)
 - `/flake-update` -- periodically before committing/PRing
 - `/fix-osv-finding` -- when osv-scanner reports findings (findings are blockers)
-- `/create-issue` -- immediately for every user request, including small asks
+- `/create-issue` -- immediately for every user request, including small asks,
+  but first confirm which repository it should target
 - `/record-demo` -- after any UI/UX feature work; commit the GIF
 - `/capture-ui` -- after TUI feature/bugfix work; capture screenshot or video for PR review
 - `/deprecate-config` -- when renaming or removing a config key
@@ -237,6 +238,15 @@ details; do not duplicate that detail here.
   reply to the comment on GitHub (via `gh api .../replies`) explaining
   how it was addressed (commit hash, what changed, tests added). Do this
   for every comment, not just some.
+- **Confirm issue creation target first**: Before creating any GitHub issue,
+  ask one short confirmation question covering which repository to use.
+  Default to the repository pointed to by the local `origin` remote. Never
+  create issues on the upstream/mainline repository unless the user explicitly
+  asks for that exact target.
+- **Never push without confirmation**: Commits may be created automatically at
+  logical stopping points, but any `git push` or remote publication step
+  requires explicit user confirmation first. This applies even when a commit,
+  PR, or branch is otherwise ready.
 - **Never use `git commit --no-verify`**: No exceptions. Fix every hook
   failure before committing.
 - **Treat all linter/compiler warnings as bugs**: Fix all warnings from
@@ -520,4 +530,7 @@ Session history is in the git log.
 
 # Remaining work
 
-Work items are tracked as [GitHub issues](https://github.com/micasa-dev/micasa/issues).
+Work items may be tracked as GitHub issues on the current working repository or
+fork. Use the repository pointed to by the local `origin` remote by default,
+not the upstream/mainline repository, unless the user explicitly requests
+otherwise.

@@ -16,7 +16,6 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/fang/v2"
-	"charm.land/lipgloss/v2"
 	"github.com/micasa-dev/micasa/internal/app"
 	"github.com/micasa-dev/micasa/internal/config"
 	"github.com/micasa-dev/micasa/internal/data"
@@ -72,6 +71,7 @@ func newRootCmd() *cobra.Command {
 		newDemoCmd(),
 		newBackupCmd(),
 		newConfigCmd(),
+		newWebCmd(),
 		newProCmd(),
 		newMCPCmd(),
 		newShowCmd(),
@@ -164,49 +164,14 @@ func seedStore(store *data.Store, seed *seedOpts) error {
 }
 
 func launchTUI(dbPath string, seed *seedOpts) error {
-	store, err := data.Open(dbPath)
+	runtime, err := openRuntime(dbPath, seed)
 	if err != nil {
-		return fmt.Errorf("open database: %w", err)
-	}
-	if err := store.AutoMigrate(); err != nil {
-		return fmt.Errorf("migrate database: %w", err)
-	}
-	if err := store.SeedDefaults(); err != nil {
-		return fmt.Errorf("seed defaults: %w", err)
-	}
-	if err := seedStore(store, seed); err != nil {
 		return err
 	}
+	defer func() { _ = runtime.Close() }()
 
-	cfg, err := config.Load()
-	if err != nil {
-		return fmt.Errorf("load config: %w", err)
-	}
-	if len(cfg.Warnings) > 0 {
-		isDark := lipgloss.HasDarkBackground(os.Stdin, os.Stderr)
-		warnColor := "#F0E442" // Wong yellow (dark bg)
-		if !isDark {
-			warnColor = "#B8860B" // Wong yellow (light bg)
-		}
-		warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(warnColor))
-		for _, w := range cfg.Warnings {
-			fmt.Fprintln(os.Stderr, warnStyle.Render("warning:")+" "+w)
-		}
-	}
-	if err := store.SetMaxDocumentSize(cfg.Documents.MaxFileSize.Bytes()); err != nil {
-		return fmt.Errorf("configure document size limit: %w", err)
-	}
-	cacheDir, err := data.DocumentCacheDir()
-	if err != nil {
-		return fmt.Errorf("resolve document cache directory: %w", err)
-	}
-	if _, err := data.EvictStaleCache(cacheDir, cfg.Documents.CacheTTLDuration()); err != nil {
-		return fmt.Errorf("evict stale cache: %w", err)
-	}
-
-	if err := store.ResolveCurrency(cfg.Locale.Currency); err != nil {
-		return fmt.Errorf("resolve currency: %w", err)
-	}
+	emitConfigWarnings(runtime.cfg)
+	cfg := runtime.cfg
 
 	appOpts := app.Options{
 		DBPath:          dbPath,
@@ -247,9 +212,9 @@ func launchTUI(dbPath string, seed *seedOpts) error {
 		cfg.Extraction.OCR.TSV.Threshold(),
 	)
 
-	tryLoadSyncConfig(store, &appOpts)
+	tryLoadSyncConfig(runtime.store, &appOpts)
 
-	model, err := app.NewModel(store, appOpts)
+	model, err := app.NewModel(runtime.store, appOpts)
 	if err != nil {
 		return fmt.Errorf("initialize app: %w", err)
 	}
